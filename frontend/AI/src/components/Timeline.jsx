@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion'
 import { FaCamera, FaEye, FaShieldAlt, FaUsers, FaExclamationTriangle, FaBrain } from 'react-icons/fa'
+import { AnimateDigits } from '@/components/unlumen-ui/animate-digits'
 
 const iconMap = {
   Shield: FaShieldAlt,
@@ -42,7 +43,9 @@ function Timeline({ items, theme }) {
               </div>
               <div>
                 <p className={`text-sm font-semibold ${theme === 'dark' ? 'text-slate-100' : 'text-slate-800'}`}>{item.title}</p>
-                <p className={`text-xs ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>{item.time}</p>
+                <div className={`text-xs ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>
+                  <AnimateDigits value={item.time} className="font-semibold" />
+                </div>
               </div>
             </motion.div>
           )

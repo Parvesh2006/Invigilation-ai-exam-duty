@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Link, useNavigate } from 'react-router-dom'
 import { FaBell, FaEye, FaCircle, FaMoon, FaSun } from 'react-icons/fa'
+import { AnimateDigits } from '@/components/unlumen-ui/animate-digits'
 import { notificationItems, profileMenuItems } from '../data/dashboardData'
 
 function Header({ title, status, theme, toggleTheme }) {
@@ -19,7 +20,16 @@ function Header({ title, status, theme, toggleTheme }) {
   }, [])
 
   const formattedDate = useMemo(() => dateTime.toLocaleDateString(), [dateTime])
-  const formattedTime = useMemo(() => dateTime.toLocaleTimeString(), [dateTime])
+  const formattedTime = useMemo(
+    () =>
+      dateTime.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true,
+      }),
+    [dateTime],
+  )
 
   const handleNavigate = (path) => {
     navigate(path)
@@ -71,7 +81,10 @@ function Header({ title, status, theme, toggleTheme }) {
           </div>
 
           <div className={`rounded-2xl border px-3 py-2 text-sm ${theme === 'dark' ? 'border-slate-700/80 bg-slate-800/80 text-slate-300' : 'border-slate-200/80 bg-slate-50/70 text-slate-600'}`}>
-            <div className={`font-medium ${theme === 'dark' ? 'text-slate-200' : 'text-slate-700'}`}>{formattedTime}</div>
+            <AnimateDigits
+              value={formattedTime}
+              className={`text-lg font-semibold ${theme === 'dark' ? 'text-white' : 'text-black'}`}
+            />
           </div>
 
           <div className="relative">
