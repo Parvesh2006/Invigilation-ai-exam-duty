@@ -1,25 +1,13 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Link, useNavigate } from 'react-router-dom'
 import { FaBell, FaEye, FaCircle, FaMoon, FaSun } from 'react-icons/fa'
 import { notificationItems, profileMenuItems } from '../data/dashboardData'
 
 function Header({ title, status, theme, toggleTheme }) {
-  const [dateTime, setDateTime] = useState(new Date())
   const [showNotifications, setShowNotifications] = useState(false)
   const [showProfile, setShowProfile] = useState(false)
   const navigate = useNavigate()
-
-  useEffect(() => {
-    const timer = window.setInterval(() => {
-      setDateTime(new Date())
-    }, 1000)
-
-    return () => window.clearInterval(timer)
-  }, [])
-
-  const formattedDate = useMemo(() => dateTime.toLocaleDateString(), [dateTime])
-  const formattedTime = useMemo(() => dateTime.toLocaleTimeString(), [dateTime])
 
   const handleNavigate = (path) => {
     navigate(path)
@@ -64,14 +52,6 @@ function Header({ title, status, theme, toggleTheme }) {
               <FaCircle className="text-[10px] text-emerald-500" />
               <span className={`font-medium ${theme === 'dark' ? 'text-slate-200' : 'text-slate-700'}`}>{status}</span>
             </div>
-          </div>
-
-          <div className={`rounded-2xl border px-3 py-2 text-sm ${theme === 'dark' ? 'border-slate-700/80 bg-slate-800/80 text-slate-300' : 'border-slate-200/80 bg-slate-50/70 text-slate-600'}`}>
-            <div className={`font-medium ${theme === 'dark' ? 'text-slate-200' : 'text-slate-700'}`}>{formattedDate}</div>
-          </div>
-
-          <div className={`rounded-2xl border px-3 py-2 text-sm ${theme === 'dark' ? 'border-slate-700/80 bg-slate-800/80 text-slate-300' : 'border-slate-200/80 bg-slate-50/70 text-slate-600'}`}>
-            <div className={`font-medium ${theme === 'dark' ? 'text-slate-200' : 'text-slate-700'}`}>{formattedTime}</div>
           </div>
 
           <div className="relative">
