@@ -1,7 +1,7 @@
 """Runnable Sentinel AI engine entry point."""
 
 from __future__ import annotations
-
+import sys
 import signal
 import time
 from pathlib import Path

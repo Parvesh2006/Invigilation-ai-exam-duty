@@ -117,13 +117,9 @@ function Dashboard({ theme, toggleTheme }) {
         <div className="flex flex-wrap items-center justify-end gap-3">
           <button
             type="button"
-            onClick={(event) => {
-              event.preventDefault()
-              refreshDashboard()
-            }}
             className="rounded-2xl border border-slate-200/80 bg-white/70 px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:scale-105 dark:border-slate-700/80 dark:bg-slate-900/80 dark:text-slate-100"
             onClick={refreshDashboard}
-            className="rounded-2xl border border-slate-200/80 bg-white/70 px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:scale-105"
+          >
             Refresh Data
           </button>
           <button
@@ -166,4 +162,3 @@ function Dashboard({ theme, toggleTheme }) {
 }
 
 export default Dashboard
-
