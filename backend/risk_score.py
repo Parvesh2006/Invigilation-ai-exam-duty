@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import List, Tuple
 
-from backend.anomaly_engine import Alert, SEVERITY_TO_SCORE
+from anomaly_engine import Alert, SEVERITY_TO_SCORE
 
 
 def score_from_alerts(alerts: List[Alert]) -> Tuple[int, str]:
