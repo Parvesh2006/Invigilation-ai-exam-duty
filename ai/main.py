@@ -13,6 +13,7 @@ from ai.config import SETTINGS
 from ai.debug import DebugOverlay
 from ai.detector import ObjectDetector
 from ai.evidence import EvidenceManager
+from ai.intelligence import ExaminationIntelligenceEngine
 from ai.logger import configure_logging, get_logger
 from ai.motion import MotionAnalyzer
 from ai.tracker import MultiObjectTracker
@@ -45,6 +46,7 @@ def run() -> None:
     zones = ZoneManager(SETTINGS)
     debug_overlay = DebugOverlay(SETTINGS, zones)
     anomaly_detector = AnomalyDetector(SETTINGS, zones)
+    intelligence = ExaminationIntelligenceEngine()
     evidence = EvidenceManager(SETTINGS)
     alerts = AlertDispatcher(SETTINGS.alert).start()
     webcam = WebcamStream(SETTINGS.camera).start()
@@ -61,6 +63,14 @@ def run() -> None:
             active_tracks = tracker.update(detections, packet.timestamp)
             zones.update_track_zones(active_tracks)
             motion_result = motion.analyze(packet.frame)
+            intelligence.update_scene(
+                tracks=active_tracks,
+                zones=list(zones.zones),
+                fps=packet.fps,
+                camera_connected=True,
+                yolo_running=True,
+                backend_connected=SETTINGS.alert.send_alerts,
+            )
             anomalies = anomaly_detector.detect(
                 frame=packet.frame,
                 detections=detections,
@@ -78,6 +88,7 @@ def run() -> None:
                     risk_score=SETTINGS.risk_score_for(anomaly.event_type),
                     screenshot=screenshot,
                 )
+                intelligence.ingest_alert(event.model_dump())
                 alerts.submit(event)
                 logger.info(
                     "Alert generated: event_type=%s tracking_id=%s fps=%.1f",
