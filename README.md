@@ -25,6 +25,3 @@ npm run dev
 cd ai
 source venv/bin/activate
 python3 main.py
-
-### Demo Video
-
