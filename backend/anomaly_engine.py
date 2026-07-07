@@ -18,6 +18,7 @@ class Alert:
     risk_level: str
     message: str
     risk_score: int
+    timestamp: str
 
 
 class AnomalyEngine:
@@ -30,6 +31,10 @@ class AnomalyEngine:
         "student_head_turning": ("Medium", "A student is repeatedly turning their head."),
         "camera_blocked": ("Critical", "The camera view is blocked."),
         "unauthorized_person": ("High", "An unauthorized person was detected in the exam hall."),
+        "multiple_students_talking": ("High", "Multiple students are talking during the exam."),
+        "paper_exchange": ("High", "Possible paper exchange detected."),
+        "student_sleeping": ("Medium", "A student appears to be sleeping."),
+        "crowd_movement": ("Medium", "Unusual crowd movement detected in the exam hall."),
     }
 
     def analyze(self, detections: Dict[str, bool]) -> List[Alert]:
@@ -43,14 +48,8 @@ class AnomalyEngine:
                         risk_level=risk_level,
                         message=message,
                         risk_score=SEVERITY_TO_SCORE[risk_level],
+                        timestamp="",
                     )
                 )
 
         return alerts
-
-    @staticmethod
-    def final_risk_score(alerts: List[Alert]) -> int:
-        if not alerts:
-            return 0
-        return min(max(alert.risk_score for alert in alerts), 100)
-

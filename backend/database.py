@@ -6,7 +6,7 @@ from typing import Any, Dict, List
 
 
 BASE_DIR = Path(__file__).resolve().parent
-DB_PATH = BASE_DIR / "invigilation_anomaly.db"
+DB_PATH = BASE_DIR / "alerts.db"
 
 
 def get_connection() -> sqlite3.Connection:
@@ -68,4 +68,3 @@ def fetch_latest_risk_score() -> int:
         if row is None or row["max_score"] is None:
             return 0
         return int(row["max_score"])
-

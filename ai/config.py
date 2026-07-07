@@ -198,7 +198,7 @@ class AlertConfig(BaseModel):
 
     model_config = ConfigDict(frozen=True)
 
-    backend_url: str = "http://localhost:8000/alert"
+    backend_url: str = "http://127.0.0.1:8000/detect"
     request_timeout_seconds: float = Field(default=2.0, ge=0.1)
     max_retries: int = Field(default=3, ge=0)
     retry_backoff_seconds: float = Field(default=0.5, ge=0.0)
@@ -514,7 +514,7 @@ def load_config() -> AppConfig:
             max_retained_screenshots=_env_int("SENTINEL_MAX_SCREENSHOTS", 500),
         ),
         alert=AlertConfig(
-            backend_url=os.getenv("SENTINEL_BACKEND_URL", "http://localhost:8000/alert"),
+            backend_url=os.getenv("SENTINEL_BACKEND_URL", "http://127.0.0.1:8000/detect"),
             request_timeout_seconds=_env_float("SENTINEL_ALERT_TIMEOUT", 2.0),
             max_retries=_env_int("SENTINEL_ALERT_MAX_RETRIES", 3),
             retry_backoff_seconds=_env_float("SENTINEL_ALERT_RETRY_BACKOFF", 0.5),

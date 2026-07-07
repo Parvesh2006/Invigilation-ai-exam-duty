@@ -1,0 +1,14 @@
+{
+  "name": "frontend",
+  "private": true,
+  "workspaces": [
+    "AI"
+  ],
+  "scripts": {
+    "dev": "npm --workspace AI run dev",
+    "build": "npm --workspace AI run build",
+    "preview": "npm --workspace AI run preview",
+    "lint": "npm --workspace AI run lint"
+  }
+}
+

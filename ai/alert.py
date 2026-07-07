@@ -48,7 +48,7 @@ class AlertDispatcher:
     def send_now(self, event: AlertEvent) -> bool:
         """Send one event immediately; useful for tests and CLI smoke checks."""
 
-        payload = event.model_dump()
+        payload = self._build_detection_payload(event)
         if not self.config.send_alerts:
             logger.info("Alert sending disabled. Event: %s", json.dumps(payload))
             return True
@@ -75,6 +75,36 @@ class AlertDispatcher:
                 time.sleep(self.config.retry_backoff_seconds * (attempt + 1))
         return False
 
+    @staticmethod
+    def _build_detection_payload(event: AlertEvent) -> dict[str, bool]:
+        payload = {
+            "phone_detected": False,
+            "invigilator_absent": False,
+            "student_standing": False,
+            "student_head_turning": False,
+            "camera_blocked": False,
+            "unauthorized_person": False,
+            "multiple_students_talking": False,
+            "paper_exchange": False,
+            "student_sleeping": False,
+            "crowd_movement": False,
+        }
+
+        mapping = {
+            "PHONE_USAGE": "phone_detected",
+            "INVIGILATOR_LEFT_ROOM": "invigilator_absent",
+            "LONG_INACTIVITY": "student_sleeping",
+            "UNAUTHORIZED_ENTRY": "unauthorized_person",
+            "STUDENT_GROUPING": "multiple_students_talking",
+            "CAMERA_BLOCKED": "camera_blocked",
+        }
+
+        backend_field = mapping.get(event.event_type)
+        if backend_field:
+            payload[backend_field] = True
+
+        return payload
+
     def _worker(self) -> None:
         while not self._stop_event.is_set() or not self._queue.empty():
             try:
@@ -91,4 +121,3 @@ class AlertDispatcher:
 
     def __exit__(self, exc_type: object, exc: object, traceback: object) -> None:
         self.stop()
-

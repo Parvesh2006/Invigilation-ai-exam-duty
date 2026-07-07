@@ -8,18 +8,17 @@ from backend.anomaly_engine import Alert, SEVERITY_TO_SCORE
 def score_from_alerts(alerts: List[Alert]) -> Tuple[int, str]:
     """Return the final score and a human-readable overall level."""
     if not alerts:
-        return 0, "No Alerts"
+        return 0, "Safe"
 
     score = min(max(alert.risk_score for alert in alerts), 100)
 
-    if score >= SEVERITY_TO_SCORE["Critical"]:
-        level = "Critical"
-    elif score >= SEVERITY_TO_SCORE["High"]:
-        level = "High"
-    elif score >= SEVERITY_TO_SCORE["Medium"]:
-        level = "Medium"
+    if score <= 30:
+        level = "Safe"
+    elif score <= 60:
+        level = "Moderate Risk"
+    elif score <= 80:
+        level = "High Risk"
     else:
-        level = "Low"
+        level = "Critical Risk"
 
     return score, level
-

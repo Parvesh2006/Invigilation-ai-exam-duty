@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Union
 
 
-EVIDENCE_DIR = Path(__file__).resolve().parent.parent / "evidence"
+EVIDENCE_DIR = Path(__file__).resolve().parent / "evidence"
 EVIDENCE_DIR.mkdir(parents=True, exist_ok=True)
 
 

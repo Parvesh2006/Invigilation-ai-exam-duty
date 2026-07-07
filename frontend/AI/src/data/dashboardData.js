@@ -16,15 +16,15 @@ export const dashboardData = {
     faculty: '12 Faculty Active',
     students: 480,
     detectedPersons: 486,
-    suspiciousEvents: 8,
-    objectsDetected: 'Phones & Accessories',
-    confidence: '96%',
+    suspiciousEvents: 0,
+    objectsDetected: 'Waiting for backend data',
+    confidence: 'Connecting',
     status: 'Monitoring',
   },
   riskMeter: {
-    risk: 72,
+    risk: 0,
     label: 'Risk',
-    status: 'High',
+    status: 'Safe',
   },
   timeline: [
     { time: '09:00', title: 'Exam Started', icon: 'Shield' },
@@ -38,14 +38,11 @@ export const dashboardData = {
   stats: [
     { title: 'Total Students', value: '48', icon: 'Users' },
     { title: 'Active Cameras', value: '12', icon: 'Camera' },
-    { title: 'Detected Alerts', value: '03', icon: 'AlertTriangle' },
-    { title: 'AI Accuracy', value: '97%', icon: 'ChartBar' },
+    { title: 'Detected Alerts', value: '00', icon: 'AlertTriangle' },
+    { title: 'AI Accuracy', value: 'Live', icon: 'ChartBar' },
   ],
   alerts: [
-    { title: 'Phone Detected', color: 'danger' },
-    { title: 'Student Standing', color: 'warning' },
-    { title: 'Unauthorized Person', color: 'danger' },
-    { title: 'Normal Activity', color: 'success' },
+    { title: 'Waiting for live alerts', color: 'success' },
   ],
 }
 

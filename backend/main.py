@@ -28,6 +28,10 @@ class DetectionInput(BaseModel):
     student_head_turning: bool = False
     camera_blocked: bool = False
     unauthorized_person: bool = False
+    multiple_students_talking: bool = False
+    paper_exchange: bool = False
+    student_sleeping: bool = False
+    crowd_movement: bool = False
 
 
 class BoundingBoxPayload(BaseModel):
@@ -71,6 +75,7 @@ def _rows_to_alert_objects(rows: List[Dict[str, Any]]) -> List[Alert]:
             risk_level=row["risk_level"],
             message=row["message"],
             risk_score=int(row["risk_score"]),
+            timestamp=row["timestamp"],
         )
         for row in rows
     ]
@@ -89,20 +94,26 @@ def home() -> Dict[str, str]:
         "positioning": "Examination Intelligence Platform",
     }
 
+@app.get("/health")
+def health() -> Dict[str, str]:
+    return {
+        "status": "healthy",
+        "project": "Invigilation Duty Anomaly Detection",
+    }
 
 @app.post("/detect")
 def detect_anomaly(payload: DetectionInput) -> Dict[str, Any]:
-    detections = payload.dict()
+    detections = payload.model_dump() if hasattr(payload, "model_dump") else payload.dict()
     alerts = engine.analyze(detections)
     timestamp = datetime.now().isoformat(timespec="seconds")
 
     for alert in alerts:
         insert_alert(
-            alert.alert_type,
-            alert.risk_level,
-            alert.message,
-            alert.risk_score,
-            timestamp,
+            alert_type=alert.alert_type,
+            risk_level=alert.risk_level,
+            message=alert.message,
+            risk_score=alert.risk_score,
+            timestamp=timestamp,
         )
 
     risk_score, level = score_from_alerts(alerts)
@@ -197,8 +208,8 @@ def get_report() -> FileResponse:
         ) from exc
 
     alerts = fetch_alerts()
-    risk_score, _ = score_from_alerts(_rows_to_alert_objects(alerts))
-    report_path = Path(generate_pdf_report(alerts, risk_score))
+    risk_score, status = score_from_alerts(_rows_to_alert_objects(alerts))
+    report_path = Path(generate_pdf_report(alerts, risk_score, status))
 
     if not report_path.exists():
         raise HTTPException(status_code=500, detail="Report could not be generated")
