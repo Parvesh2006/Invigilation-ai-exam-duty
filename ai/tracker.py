@@ -78,6 +78,11 @@ class MultiObjectTracker:
     def active_tracks(self) -> list[TrackedObject]:
         return [track for track in self._tracks.values() if track.active]
 
+    def get_active_tracks(self) -> list[TrackedObject]:
+        """Compatibility API required by the AI engine contract."""
+
+        return self.active_tracks()
+
     def missing_tracks(self) -> list[TrackedObject]:
         return [track for track in self._tracks.values() if not track.active]
 
@@ -106,7 +111,9 @@ class MultiObjectTracker:
     def _update_track(self, track: TrackedObject, detection: Detection, now: float) -> None:
         previous_center = track.center
         new_center = detection.center
-        if distance(previous_center, new_center) >= self.movement_threshold:
+        movement_distance = distance(previous_center, new_center)
+        track.movement_history.append(movement_distance)
+        if movement_distance >= self.movement_threshold:
             track.last_moved_at = now
 
         track.class_name = detection.class_name
@@ -118,3 +125,5 @@ class MultiObjectTracker:
         track.trajectory.append(new_center)
         if len(track.trajectory) > self.trajectory_limit:
             del track.trajectory[: len(track.trajectory) - self.trajectory_limit]
+        if len(track.movement_history) > self.trajectory_limit:
+            del track.movement_history[: len(track.movement_history) - self.trajectory_limit]

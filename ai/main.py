@@ -2,16 +2,18 @@
 
 from __future__ import annotations
 
-import logging
 import signal
-import sys
 import time
+
+import cv2
 
 from ai.alert import AlertDispatcher
 from ai.anomalies import AnomalyDetector
 from ai.config import SETTINGS
+from ai.debug import DebugOverlay
 from ai.detector import ObjectDetector
 from ai.evidence import EvidenceManager
+from ai.logger import configure_logging, get_logger
 from ai.motion import MotionAnalyzer
 from ai.tracker import MultiObjectTracker
 from ai.utils import AlertEvent
@@ -19,24 +21,11 @@ from ai.webcam import WebcamStream
 from ai.zones import ZoneManager
 
 
-def configure_logging() -> None:
-    SETTINGS.logging.log_dir.mkdir(parents=True, exist_ok=True)
-    log_path = SETTINGS.logging.log_dir / SETTINGS.logging.file_name
-    logging.basicConfig(
-        level=getattr(logging, SETTINGS.logging.level.upper(), logging.INFO),
-        format="%(asctime)s %(levelname)s [%(name)s] %(message)s",
-        handlers=[
-            logging.StreamHandler(sys.stdout),
-            logging.FileHandler(log_path, encoding="utf-8"),
-        ],
-    )
-
-
 def run() -> None:
     """Run the real-time detection loop until interrupted."""
 
     configure_logging()
-    logger = logging.getLogger(__name__)
+    logger = get_logger(__name__)
     stop_requested = False
 
     def request_stop(signum: int, frame: object) -> None:
@@ -54,6 +43,7 @@ def run() -> None:
     tracker = MultiObjectTracker()
     motion = MotionAnalyzer(SETTINGS.motion)
     zones = ZoneManager(SETTINGS)
+    debug_overlay = DebugOverlay(SETTINGS, zones)
     anomaly_detector = AnomalyDetector(SETTINGS, zones)
     evidence = EvidenceManager(SETTINGS)
     alerts = AlertDispatcher(SETTINGS.alert).start()
@@ -69,6 +59,7 @@ def run() -> None:
 
             detections = detector.detect(packet.frame)
             active_tracks = tracker.update(detections, packet.timestamp)
+            zones.update_track_zones(active_tracks)
             motion_result = motion.analyze(packet.frame)
             anomalies = anomaly_detector.detect(
                 frame=packet.frame,
@@ -80,7 +71,7 @@ def run() -> None:
             )
 
             for anomaly in anomalies:
-                screenshot = evidence.capture(packet.frame, anomaly)
+                screenshot = evidence.capture(packet.frame, anomaly, active_tracks)
                 event = AlertEvent.from_anomaly(
                     anomaly,
                     camera_id=SETTINGS.camera.camera_id,
@@ -94,9 +85,26 @@ def run() -> None:
                     event.tracking_id,
                     packet.fps,
                 )
+
+            if SETTINGS.debug.enabled or SETTINGS.debug.show_window:
+                visible_anomalies = anomaly_detector.active_anomalies(packet.timestamp)
+                debug_frame = debug_overlay.draw(
+                    packet.frame,
+                    detections=detections,
+                    tracks=active_tracks,
+                    motion=motion_result,
+                    anomalies=visible_anomalies,
+                    fps=packet.fps,
+                )
+                if SETTINGS.debug.show_window:
+                    cv2.imshow(SETTINGS.debug.window_name, debug_frame)
+                    if cv2.waitKey(1) & 0xFF == ord("q"):
+                        stop_requested = True
     finally:
         webcam.stop()
         alerts.stop()
+        if SETTINGS.debug.show_window:
+            cv2.destroyAllWindows()
         logger.info("Sentinel AI stopped")
 
 

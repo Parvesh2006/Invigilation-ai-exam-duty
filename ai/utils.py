@@ -58,7 +58,9 @@ class TrackedObject:
     last_moved_at: float
     missed_frames: int = 0
     active: bool = True
+    zone: str = "unknown"
     trajectory: list[tuple[float, float]] = field(default_factory=list)
+    movement_history: list[float] = field(default_factory=list)
 
     @property
     def center(self) -> tuple[float, float]:
@@ -67,6 +69,15 @@ class TrackedObject:
     @property
     def duration_seconds(self) -> float:
         return max(0.0, self.last_seen - self.first_seen)
+
+    @property
+    def movement_distance(self) -> float:
+        return sum(self.movement_history)
+
+    @property
+    def average_speed(self) -> float:
+        duration = self.duration_seconds
+        return 0.0 if duration <= 0 else self.movement_distance / duration
 
 
 @dataclass(slots=True)
@@ -91,6 +102,10 @@ class Anomaly:
     confidence: float
     bounding_box: BoundingBox
     description: str
+    zone: str = "unknown"
+    event_key: str = ""
+    status: str = "started"
+    timestamp: float = 0.0
 
 
 class AlertBoundingBox(BaseModel):
@@ -116,6 +131,7 @@ class AlertEvent(BaseModel):
     tracking_id: str
     confidence: float = Field(ge=0.0, le=1.0)
     risk_score: int = Field(ge=0, le=100)
+    zone: str
     bounding_box: AlertBoundingBox
     screenshot: str
     description: str
@@ -137,6 +153,7 @@ class AlertEvent(BaseModel):
             tracking_id=anomaly.tracking_id,
             confidence=round(float(anomaly.confidence), 4),
             risk_score=risk_score,
+            zone=anomaly.zone,
             bounding_box=AlertBoundingBox(**anomaly.bounding_box.model_dump()),
             screenshot=screenshot,
             description=anomaly.description,

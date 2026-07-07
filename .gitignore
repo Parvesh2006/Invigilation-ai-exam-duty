@@ -8,3 +8,4 @@ frontend/.env
 ai/screenshots/
 ai/logs/
 ai/models/
+ai/model_weights/

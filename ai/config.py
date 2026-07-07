@@ -20,7 +20,8 @@ load_dotenv()
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent
-MODELS_DIR = PROJECT_ROOT / "models"
+MODEL_WEIGHTS_DIR = PROJECT_ROOT / "model_weights"
+MODELS_DIR = MODEL_WEIGHTS_DIR
 SCREENSHOTS_DIR = PROJECT_ROOT / "screenshots"
 LOGS_DIR = PROJECT_ROOT / "logs"
 
@@ -37,6 +38,12 @@ class EventType(StrEnum):
     UNAUTHORIZED_ENTRY = "UNAUTHORIZED_ENTRY"
     STUDENT_GROUPING = "STUDENT_GROUPING"
     CAMERA_BLOCKED = "CAMERA_BLOCKED"
+    CROWD_FORMATION = "CROWD_FORMATION"
+    SUSPICIOUS_PROXIMITY = "SUSPICIOUS_PROXIMITY"
+    RESTRICTED_ZONE_ACCESS = "RESTRICTED_ZONE_ACCESS"
+    EXCESSIVE_DOOR_ACTIVITY = "EXCESSIVE_DOOR_ACTIVITY"
+    MULTIPLE_PHONE_USAGE = "MULTIPLE_PHONE_USAGE"
+    EMPTY_INVIGILATOR_ZONE = "EMPTY_INVIGILATOR_ZONE"
 
 
 class ZoneType(StrEnum):
@@ -153,7 +160,17 @@ class AnomalyConfig(BaseModel):
     door_entry_max_track_age_seconds: float = Field(default=3.0, ge=0.0)
     invigilator_left_seconds: float = Field(default=20.0, ge=1.0)
     grouping_distance_pixels: float = Field(default=140.0, ge=1.0)
+    grouping_time_seconds: float = Field(default=3.0, ge=0.0)
     grouping_min_people: int = Field(default=3, ge=2)
+    suspicious_proximity_pixels: float = Field(default=95.0, ge=1.0)
+    suspicious_proximity_seconds: float = Field(default=5.0, ge=0.0)
+    crowd_radius_pixels: float = Field(default=190.0, ge=1.0)
+    crowd_min_people: int = Field(default=4, ge=3)
+    crowd_time_seconds: float = Field(default=4.0, ge=0.0)
+    door_activity_window_seconds: float = Field(default=20.0, ge=1.0)
+    door_activity_max_events: int = Field(default=4, ge=2)
+    empty_invigilator_zone_seconds: float = Field(default=15.0, ge=1.0)
+    invigilator_recognition_seconds: float = Field(default=1.5, ge=0.0)
     camera_blocked_brightness_threshold: float = Field(default=25.0, ge=0.0, le=255.0)
     camera_blocked_dark_pixel_ratio: float = Field(default=0.92, ge=0.0, le=1.0)
     duplicate_alert_cooldown_seconds: float = Field(default=10.0, ge=0.0)
@@ -181,7 +198,7 @@ class AlertConfig(BaseModel):
 
     model_config = ConfigDict(frozen=True)
 
-    backend_url: str = "http://localhost:8000/api/alerts"
+    backend_url: str = "http://localhost:8000/alert"
     request_timeout_seconds: float = Field(default=2.0, ge=0.1)
     max_retries: int = Field(default=3, ge=0)
     retry_backoff_seconds: float = Field(default=0.5, ge=0.0)
@@ -206,6 +223,18 @@ class LoggingConfig(BaseModel):
         return Path(value)
 
 
+class DebugConfig(BaseModel):
+    """Visual debug overlay settings."""
+
+    model_config = ConfigDict(frozen=True)
+
+    enabled: bool = False
+    show_window: bool = False
+    window_name: str = "Sentinel AI Debug"
+    alert_visible_seconds: float = Field(default=5.0, ge=0.5)
+    flash_period_seconds: float = Field(default=0.6, ge=0.1)
+
+
 class AppConfig(BaseModel):
     """Top-level immutable application configuration."""
 
@@ -218,6 +247,7 @@ class AppConfig(BaseModel):
     evidence: EvidenceConfig = Field(default_factory=EvidenceConfig)
     alert: AlertConfig = Field(default_factory=AlertConfig)
     logging: LoggingConfig = Field(default_factory=LoggingConfig)
+    debug: DebugConfig = Field(default_factory=DebugConfig)
     zones: tuple[ZoneConfig, ...] = Field(default_factory=tuple)
     risk_scores: dict[EventType, int] = Field(default_factory=dict)
 
@@ -228,6 +258,12 @@ class AppConfig(BaseModel):
         EventType.UNAUTHORIZED_ENTRY: 90,
         EventType.STUDENT_GROUPING: 60,
         EventType.CAMERA_BLOCKED: 100,
+        EventType.CROWD_FORMATION: 70,
+        EventType.SUSPICIOUS_PROXIMITY: 55,
+        EventType.RESTRICTED_ZONE_ACCESS: 85,
+        EventType.EXCESSIVE_DOOR_ACTIVITY: 65,
+        EventType.MULTIPLE_PHONE_USAGE: 75,
+        EventType.EMPTY_INVIGILATOR_ZONE: 80,
     }
 
     @model_validator(mode="after")
@@ -236,7 +272,7 @@ class AppConfig(BaseModel):
             self.camera.frame_width,
             self.camera.frame_height,
         )
-        risk_scores = self.risk_scores or self.DEFAULT_RISK_SCORES
+        risk_scores = {**self.DEFAULT_RISK_SCORES, **self.risk_scores}
         missing_events = set(EventType) - set(risk_scores)
         if missing_events:
             missing = ", ".join(sorted(event.value for event in missing_events))
@@ -440,7 +476,23 @@ def load_config() -> AppConfig:
             ),
             invigilator_left_seconds=_env_float("SENTINEL_INVIGILATOR_LEFT_SECONDS", 20.0),
             grouping_distance_pixels=_env_float("SENTINEL_GROUPING_DISTANCE", 140.0),
+            grouping_time_seconds=_env_float("SENTINEL_GROUPING_TIME_SECONDS", 3.0),
             grouping_min_people=_env_int("SENTINEL_GROUPING_MIN_PEOPLE", 3),
+            suspicious_proximity_pixels=_env_float("SENTINEL_SUSPICIOUS_PROXIMITY_PIXELS", 95.0),
+            suspicious_proximity_seconds=_env_float("SENTINEL_SUSPICIOUS_PROXIMITY_SECONDS", 5.0),
+            crowd_radius_pixels=_env_float("SENTINEL_CROWD_RADIUS_PIXELS", 190.0),
+            crowd_min_people=_env_int("SENTINEL_CROWD_MIN_PEOPLE", 4),
+            crowd_time_seconds=_env_float("SENTINEL_CROWD_TIME_SECONDS", 4.0),
+            door_activity_window_seconds=_env_float("SENTINEL_DOOR_ACTIVITY_WINDOW_SECONDS", 20.0),
+            door_activity_max_events=_env_int("SENTINEL_DOOR_ACTIVITY_MAX_EVENTS", 4),
+            empty_invigilator_zone_seconds=_env_float(
+                "SENTINEL_EMPTY_INVIGILATOR_ZONE_SECONDS",
+                15.0,
+            ),
+            invigilator_recognition_seconds=_env_float(
+                "SENTINEL_INVIGILATOR_RECOGNITION_SECONDS",
+                1.5,
+            ),
             camera_blocked_brightness_threshold=_env_float(
                 "SENTINEL_CAMERA_BLOCKED_BRIGHTNESS",
                 25.0,
@@ -462,7 +514,7 @@ def load_config() -> AppConfig:
             max_retained_screenshots=_env_int("SENTINEL_MAX_SCREENSHOTS", 500),
         ),
         alert=AlertConfig(
-            backend_url=os.getenv("SENTINEL_BACKEND_URL", "http://localhost:8000/api/alerts"),
+            backend_url=os.getenv("SENTINEL_BACKEND_URL", "http://localhost:8000/alert"),
             request_timeout_seconds=_env_float("SENTINEL_ALERT_TIMEOUT", 2.0),
             max_retries=_env_int("SENTINEL_ALERT_MAX_RETRIES", 3),
             retry_backoff_seconds=_env_float("SENTINEL_ALERT_RETRY_BACKOFF", 0.5),
@@ -475,6 +527,13 @@ def load_config() -> AppConfig:
             file_name=os.getenv("SENTINEL_LOG_FILE", "sentinel_ai.log"),
             rotation=os.getenv("SENTINEL_LOG_ROTATION", "10 MB"),
             retention=os.getenv("SENTINEL_LOG_RETENTION", "7 days"),
+        ),
+        debug=DebugConfig(
+            enabled=_env_bool("SENTINEL_DEBUG_OVERLAY", False),
+            show_window=_env_bool("SENTINEL_DEBUG_WINDOW", False),
+            window_name=os.getenv("SENTINEL_DEBUG_WINDOW_NAME", "Sentinel AI Debug"),
+            alert_visible_seconds=_env_float("SENTINEL_ALERT_VISIBLE_SECONDS", 5.0),
+            flash_period_seconds=_env_float("SENTINEL_ALERT_FLASH_PERIOD", 0.6),
         ),
         zones=_load_zones_from_env(),
         risk_scores=_load_risk_scores_from_env(),
@@ -492,9 +551,11 @@ __all__ = [
     "AppConfig",
     "BoundingBox",
     "CameraConfig",
+    "DebugConfig",
     "EventType",
     "EvidenceConfig",
     "LoggingConfig",
+    "MODEL_WEIGHTS_DIR",
     "ModelConfig",
     "MotionConfig",
     "PROJECT_ROOT",

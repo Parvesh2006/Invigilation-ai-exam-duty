@@ -6,6 +6,7 @@ import cv2
 import numpy as np
 
 from ai.config import AppConfig, BoundingBox, SETTINGS, ZoneConfig, ZoneType
+from ai.utils import TrackedObject
 from ai.utils import bbox_center, bbox_intersection, point_in_bbox
 
 
@@ -18,6 +19,21 @@ class ZoneManager:
 
     def zones_for_bbox(self, box: BoundingBox) -> list[ZoneConfig]:
         return [zone for zone in self.zones if bbox_intersection(box, zone.box) > 0]
+
+    def is_inside_zone(self, box: BoundingBox, zone_type: ZoneType) -> bool:
+        return self.center_inside(box, zone_type)
+
+    def current_zone(self, box: BoundingBox) -> str:
+        center = bbox_center(box)
+        for zone in self.zones:
+            if point_in_bbox(center, zone.box):
+                return zone.zone_type.value
+        overlapping = self.zones_for_bbox(box)
+        return overlapping[0].zone_type.value if overlapping else "unknown"
+
+    def update_track_zones(self, tracks: list[TrackedObject]) -> None:
+        for track in tracks:
+            track.zone = self.current_zone(track.bbox)
 
     def intersects(self, box: BoundingBox, zone_type: ZoneType) -> bool:
         return any(bbox_intersection(box, zone.box) > 0 for zone in self.zones_by_type(zone_type))

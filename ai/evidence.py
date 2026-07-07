@@ -8,7 +8,7 @@ import cv2
 import numpy as np
 
 from ai.config import AppConfig, SETTINGS
-from ai.utils import Anomaly, evidence_timestamp
+from ai.utils import Anomaly, TrackedObject, evidence_timestamp
 
 
 class EvidenceManager:
@@ -18,10 +18,15 @@ class EvidenceManager:
         self.config = config
         self.config.evidence.screenshot_dir.mkdir(parents=True, exist_ok=True)
 
-    def capture(self, frame: np.ndarray, anomaly: Anomaly) -> str:
+    def capture(
+        self,
+        frame: np.ndarray,
+        anomaly: Anomaly,
+        tracks: list[TrackedObject] | None = None,
+    ) -> str:
         image = frame.copy()
         if self.config.evidence.draw_annotations:
-            self._draw_anomaly(image, anomaly)
+            self._draw_anomaly(image, anomaly, tracks or [])
 
         file_path = self._build_path(anomaly)
         params: list[int] = []
@@ -41,18 +46,52 @@ class EvidenceManager:
         )
         return self.config.evidence.screenshot_dir / filename
 
-    def _draw_anomaly(self, image: np.ndarray, anomaly: Anomaly) -> None:
+    def _draw_anomaly(
+        self,
+        image: np.ndarray,
+        anomaly: Anomaly,
+        tracks: list[TrackedObject],
+    ) -> None:
+        timestamp = evidence_timestamp()
+        for track in tracks:
+            box = track.bbox
+            cv2.rectangle(image, (box.x, box.y), (box.x2, box.y2), (0, 180, 255), 1)
+            cv2.putText(
+                image,
+                f"ID {track.tracking_id} {track.zone}",
+                (box.x, max(16, box.y - 4)),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.45,
+                (0, 180, 255),
+                1,
+                cv2.LINE_AA,
+            )
+
         box = anomaly.bounding_box
         color = (0, 0, 255)
         cv2.rectangle(image, (box.x, box.y), (box.x2, box.y2), color, 2)
+        label = (
+            f"{anomaly.event_type.value} ID:{anomaly.tracking_id or 'camera'} "
+            f"conf:{anomaly.confidence:.2f} zone:{anomaly.zone}"
+        )
         cv2.putText(
             image,
-            anomaly.event_type.value,
+            label,
             (box.x, max(20, box.y - 8)),
             cv2.FONT_HERSHEY_SIMPLEX,
-            0.65,
+            0.55,
             color,
             2,
+            cv2.LINE_AA,
+        )
+        cv2.putText(
+            image,
+            timestamp,
+            (12, image.shape[0] - 16),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.55,
+            (255, 255, 255),
+            1,
             cv2.LINE_AA,
         )
 
