@@ -1,0 +1,14 @@
+path: C:/Ai-Engineer/ai/datasets/exam_hall
+train: images/train
+val: images/val
+test: images/test
+
+names:
+  0: person
+  1: cell_phone
+  2: paper_note
+  3: book
+  4: backpack
+  5: chair
+  6: hand_exchange
+
